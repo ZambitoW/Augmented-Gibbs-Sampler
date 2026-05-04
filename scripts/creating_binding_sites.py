@@ -22,7 +22,7 @@ binding_sites = [
     ("TGCGGGTGGATCGGGCCATC",3500084, 3500103, "-" )
 ]
 
-output_file = "dosr_binding_sites.csv"
+output_file = "data/dosr_binding_sites.csv"
 
 with open(output_file, "w", newline="")as f:
     writer = csv.writer(f)
