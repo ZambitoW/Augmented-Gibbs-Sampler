@@ -1,20 +1,45 @@
 import numpy as np
-from utils import ProfileBuilder, Score, profileRandomKmer, readSequences
+import math
+from utils import ProfileBuilder, profileRandomKmer, Score, readSequences
 
-def gibbsSampler(Dna, k, t, N):
+
+def SAGibbsSampler(Dna, k, t, N):
     motifs = []
     for sequence in Dna:
         start = np.random.randint(0, len(sequence) -k + 1)
         motifs.append(sequence[start: start + k])
     bestMotifs = motifs[:]
+    bestScore = Score(bestMotifs)
+    # This is our SA temperature
+    T = 5.0*k
+    cooling_rate = math.exp(math.log(0.01) / N)
+    exploration_rate = 0.20 
+
     for j in range(1, N):
         i = np.random.randint(0, t)
         profile = ProfileBuilder(motifs[:i] + motifs[i+1:], k)
-        motifi = profileRandomKmer(Dna[i], profile ,k )
-        motifs[i] =motifi
-        if Score(motifs) < Score(bestMotifs):
+    
+        if np.random.random() < exploration_rate:
+            start = np.random.randint(0, len(Dna[i]) - k +1)
+            motifi = Dna[i][start: start+k]
+        else: 
+            motifi = profileRandomKmer(Dna[i], profile ,k )
+
+
+        candidate_motifs= motifs[:]
+        candidate_motifs[i]=motifi
+        delta = Score(candidate_motifs) - Score(motifs)
+
+        if delta<0 or np.random.random() < math.exp(-delta/T):
+            motifs[i]= motifi
+        current_score = Score(motifs)
+        if current_score< bestScore:
             bestMotifs = motifs[:]
+            bestScore = current_score
+        
+        T *= cooling_rate
     return bestMotifs
+
 
 
 # if __name__ == "__main__":
@@ -23,14 +48,12 @@ def gibbsSampler(Dna, k, t, N):
 #     sequences = readSequences("data/sequences.fasta")
 #     t= len(sequences)
 
-#     bestMotifs = gibbsSampler(sequences, k,t,N)
+#     bestMotifs = augmentedGibbsSampler(sequences, k,t,N)
 
 #     print(f"\nBest Motifs Found:")
 #     for i, motif in enumerate(bestMotifs):
 #         print(f"  Site {i+1}: {motif}")
 #     print(f"\nScore: {Score(bestMotifs)}")
-
-
 
 if __name__ == "__main__":
     k = 20
@@ -42,7 +65,7 @@ if __name__ == "__main__":
     scores = []
 
     for r in range(runs):
-        bestMotifs = gibbsSampler(sequences, k, t, N)
+        bestMotifs = SAGibbsSampler(sequences, k, t, N)
         score = Score(bestMotifs)
         scores.append(score)
         print(f"Run {r+1}: Score = {score}")
