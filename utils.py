@@ -52,3 +52,35 @@ def readSequences(filename):
         for line in f:
             sequences.append(line.strip())
     return sequences
+
+
+
+def compareToGroundTruth(foundMotifs):
+    known_sequences = [
+        "TTAGGGCCGGAAGTCCCCAA",
+        "TGGCGGACGAATGACCCCAG",
+        "GCCGGGACTTCAGGCCCTAT",
+        "TGGGGACCATTGACCCTG",
+        "GCGGGCCATTTGTCCGCG",
+        "TAGGGACAGAAGTCCCCG",
+        "TCGGGGACTTCTGTCCCTAG",
+        "ACAGGGTCAATGGTCCCCAA",
+        "GTGGGGACCAACGCCCCTGG",
+        "ATAAGGACTAACGGCCCTCA",
+        "ACCTGGACGAGCCACCCGTG",
+        "ACGGGATGTATCCGCCCCAG",
+        "GGTCGGCCTTATGCCCCGTG",
+        "TGCGGGTGGATCGGGCCATC",
+    ]
+    
+    print(f"\n{'Site':<6} {'Found':<25} {'Known':<25} {'Match %'}")
+    print("-" * 70)
+    
+    total_match = 0
+    for i, (found, known) in enumerate(zip(foundMotifs, known_sequences)):
+
+        matches = sum(f == k for f, k in zip(found, known))
+        percentage = matches / max(len(found), len(known)) * 100
+        total_match += percentage
+        print(f"{i+1:<6} {found:<25} {known:<25} {percentage:.1f}%")
+    print(f"\nOverall match: {total_match/len(foundMotifs):.1f}%")

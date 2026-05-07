@@ -1,5 +1,5 @@
 import numpy as np
-from utils import ProfileBuilder, Score, profileRandomKmer, readSequences
+from utils import ProfileBuilder, Score, profileRandomKmer, readSequences, compareToGroundTruth
 
 def gibbsSampler(Dna, k, t, N):
     motifs = []
@@ -16,36 +16,33 @@ def gibbsSampler(Dna, k, t, N):
             bestMotifs = motifs[:]
     return bestMotifs
 
-
-# if __name__ == "__main__":
-#     k = 20
-#     N = 2000
-#     sequences = readSequences("data/sequences.fasta")
-#     t= len(sequences)
-
-#     bestMotifs = gibbsSampler(sequences, k,t,N)
-
-#     print(f"\nBest Motifs Found:")
-#     for i, motif in enumerate(bestMotifs):
-#         print(f"  Site {i+1}: {motif}")
-#     print(f"\nScore: {Score(bestMotifs)}")
-
-
-
 if __name__ == "__main__":
     k = 20
     N = 2000
     sequences = readSequences("data/sequences.fasta")
     t = len(sequences)
-
+ 
     runs = 30
     scores = []
-
+    overallBestMotifs = None
+    overallBestScore = float("inf")
+ 
     for r in range(runs):
         bestMotifs = gibbsSampler(sequences, k, t, N)
         score = Score(bestMotifs)
         scores.append(score)
         print(f"Run {r+1}: Score = {score}")
-
+ 
+        if score < overallBestScore:
+            overallBestScore = score
+            overallBestMotifs = bestMotifs[:]
+ 
     avg_score = sum(scores) / runs
-    print(f"\nAverage Score over {runs} runs: {avg_score:.2f}")
+    print(f"\nAverage Score : {avg_score:.2f}")
+    print(f"Best Score    : {overallBestScore}")
+ 
+    print("\nBest Motifs Found:")
+    for i, motif in enumerate(overallBestMotifs):
+        print(f"  Site {i+1}: {motif}")
+ 
+    compareToGroundTruth(overallBestMotifs)
