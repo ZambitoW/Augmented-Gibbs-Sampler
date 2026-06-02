@@ -1,46 +1,47 @@
 import numpy as np
-from utils import ProfileBuilder, Score, profileRandomKmer, readSequences, compareToGroundTruth
+from utils import ProfileBuilder, profileRandomKmer, readSequences, compareToGroundTruth
 import math
+"""
+Entropy-based Gibbs Sampler
+Uses entropy as the scoring function instead of Hamming distance.
+Lower entropy = more conserved motif set = better.
+"""
+def entropyScore(motifs):
+    DNA = "ACGT" 
+    k = len(motifs[0])
+    t = len(motifs)
+    total_entropy = 0.0
 
-def motifEntropy(motif,profile, k):
-    DNA = "ACGT"
-    entropy = 0.0
-    for j in range(k):
-        for bp in DNA:
-            p = profile[DNA.find(bp)][j]
-            if p>0 :
-                entropy -= p * math.log2(p)
-    return entropy
-
+    for col in range(k):
+        counts = {"A": 0, "C": 0, "G": 0, "T": 0}
+        for motif in motifs:
+            counts[motif[col]] +=1
+        for base in DNA:
+            p = counts[base]/t
+            if p>0:
+                total_entropy -= p * math.log2(p)
+    return total_entropy
 
 
 def entropyGibbsSampler(Dna, k, t, N):
     motifs = []
     for sequence in Dna:
-        start = np.random.randint(0, len(sequence) -k + 1)
+        start = np.random.randint(0, len(sequence) - k + 1)
         motifs.append(sequence[start: start + k])
     bestMotifs = motifs[:]
+    bestScore = entropyScore(bestMotifs)
 
     for j in range(1, N):
-        entropies = []
-        for index in range(t):
-            profile_index = ProfileBuilder(motifs[:index] + motifs[index+1:], k)
-            entropy = motifEntropy(motifs[index], profile_index, k)
-            entropies.append(entropy) 
-        
-        entropies = np.array(entropies)
-        max_entropy = np.max(entropies)
-        weights = np.exp(entropies - max_entropy)
-        weights /= weights.sum()
-        i=np.random.choice(t,p=weights)
-
+        i = np.random.randint(0, t)
         profile = ProfileBuilder(motifs[:i] + motifs[i+1:], k)
-        motifi = profileRandomKmer(Dna[i], profile ,k )
-        motifs[i] =motifi
-        if Score(motifs) < Score(bestMotifs):
+        motifi = profileRandomKmer(Dna[i], profile, k)
+        motifs[i] = motifi
+        current_score = entropyScore(motifs)
+        if current_score < bestScore:
             bestMotifs = motifs[:]
-    return bestMotifs
+            bestScore = current_score
 
+    return bestMotifs
 
 
 if __name__ == "__main__":
@@ -48,28 +49,28 @@ if __name__ == "__main__":
     N = 2000
     sequences = readSequences("data/sequences.fasta")
     t = len(sequences)
- 
+
     runs = 30
     scores = []
     overallBestMotifs = None
     overallBestScore = float("inf")
- 
+
     for r in range(runs):
         bestMotifs = entropyGibbsSampler(sequences, k, t, N)
-        score = Score(bestMotifs)
+        score = entropyScore(bestMotifs)
         scores.append(score)
-        print(f"Run {r+1}: Score = {score}")
- 
+        print(f"Run {r+1}: Entropy Score = {score:.4f}")
+
         if score < overallBestScore:
             overallBestScore = score
             overallBestMotifs = bestMotifs[:]
- 
+
     avg_score = sum(scores) / runs
-    print(f"\nAverage Score : {avg_score:.2f}")
-    print(f"Best Score    : {overallBestScore}")
- 
+    print(f"\nAverage Entropy Score : {avg_score:.4f}")
+    print(f"Best Entropy Score    : {overallBestScore:.4f}")
+
     print("\nBest Motifs Found:")
     for i, motif in enumerate(overallBestMotifs):
         print(f"  Site {i+1}: {motif}")
- 
+
     compareToGroundTruth(overallBestMotifs)

@@ -38,11 +38,11 @@ if __name__ == "__main__":
             overallBestMotifs = bestMotifs[:]
  
     avg_score = sum(scores) / runs
-    print(f"\nAverage Score : {avg_score:.2f}")
-    print(f"Best Score    : {overallBestScore}")
+    print(f"\nAverage Score: {avg_score:.2f}")
+    print(f"Best Score: {overallBestScore}")
  
     print("\nBest Motifs Found:")
     for i, motif in enumerate(overallBestMotifs):
-        print(f"  Site {i+1}: {motif}")
+        print(f"Site {i+1}: {motif}")
  
     compareToGroundTruth(overallBestMotifs)

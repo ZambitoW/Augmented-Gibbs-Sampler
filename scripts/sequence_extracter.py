@@ -1,5 +1,9 @@
 import csv 
 import os
+"""
+This script uses our binding sites to extract 250 bps on each flank of them in the genome,
+and saves it to the data folder as sequences.fasta
+"""
 
 binding_site_path = "../data/dosr_binding_sites.csv"
 genome_path = "../data/GCF_000195955.2_ASM19595v2_genomic.fna"
@@ -15,7 +19,6 @@ with open(binding_site_path, "r") as f:
             int(row["end"]),
             row["strand"]
         ))
-
 
 genome = ""
 with open(genome_path, "r") as f:

@@ -42,7 +42,6 @@ if __name__ == "__main__":
     bestMotifs, bestScore, avgScore = randomRestartsSampler(
         sequences, k, t, N, runs
     )
-
     print("\nBest Motifs Across All Runs:")
     for i, motif in enumerate(bestMotifs):
         print(f"  Site {i+1}: {motif}")

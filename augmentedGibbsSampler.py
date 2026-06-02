@@ -2,21 +2,31 @@ import numpy as np
 import math
 from utils import ProfileBuilder, profileRandomKmer, Score, readSequences, compareToGroundTruth
 
-def motifEntropy(motif, profile, k):
-    DNA = "ACGT"
-    entropy = 0.0
-    for j in range(k):
-        for bp in DNA:
-            p = profile[DNA.find(bp)][j]
-            if p>0:
-                entropy -= p *math.log2(p)
+"""
+This model is the augmented one from our proposal that combines both the entropy
+and simulated annealing models. 
+"""
 
-    return entropy
+def entropyScore(motifs):
+    DNA = "ACGT"
+    k = len(motifs[0])
+    t = len(motifs)
+    total_entropy = 0.0
+
+    for col in range(k):
+        counts = {"A": 0, "C": 0, "G": 0, "T": 0}
+        for motif in motifs:
+            counts[motif[col]] +=1
+        for base in DNA:
+            p = counts[base]/t
+            if p>0:
+                total_entropy -= p * math.log2(p)
+    return total_entropy
 
 def augmentedGibbsSampler(Dna,k ,t, N):
     motifs = []
     for sequence in Dna:
-        start = np.random.randint(0, len(sequence) - k +1)
+        start = np.random.randint(0, len(sequence) - k + 1)
         motifs.append(sequence[start: start + k])
     bestMotifs = motifs[:]
     bestScore = Score(bestMotifs)
@@ -26,36 +36,30 @@ def augmentedGibbsSampler(Dna,k ,t, N):
     exploration_rate = 0.2
 
     for j in range(1, N):
-        entropies = []
-        for index in range(t):
-            profile_index = ProfileBuilder(motifs[:index] + motifs[index+1:], k)
-            ent = motifEntropy(motifs[index], profile_index,k)
-            entropies.append(ent)
-        entropies = np.array(entropies)
-        weights = np.exp(entropies - np.max(entropies))
-        weights /= weights.sum()
-        i = np.random.choice(t, p = weights)
-
-        profile = ProfileBuilder(motifs[:i] + motifs[i +1 :], k)
-        if np.random.random()< exploration_rate:
-            start = np.random.randint(0, len(Dna[i]) - k +1)
-            motifi = Dna[i][start:start+k]
+        i = np.random.randint(0,t)
+        profile = ProfileBuilder(motifs[:i] + motifs[i+1:], k)
+        if np.random.random() < exploration_rate:
+            start = np.random.randint(0, len(Dna[i]) - k + 1)
+            motifi= Dna[i][start:start+k]
         else:
-            motifi = profileRandomKmer(Dna[i], profile, k)
-
+            motifi= profileRandomKmer(Dna[i], profile, k)
+    
+    #MH acceptance
         candidate_motifs = motifs[:]
-        candidate_motifs[i] = motifi
-        delta = Score(candidate_motifs) - Score(motifs)
-
+        candidate_motifs[i] =motifi
+        delta = entropyScore(candidate_motifs) - entropyScore(motifs)
         if delta < 0 or np.random.random() < math.exp(-delta/T):
             motifs[i] = motifi
-
-        current_score = Score(motifs)
-        if current_score < bestScore:
+    
+        current_score = entropyScore(motifs)
+        if current_score< bestScore:
             bestMotifs = motifs[:]
             bestScore = current_score
-        T*= cooling_rate
+
+        T *= cooling_rate
+
     return bestMotifs
+        
 
 def runAugmented(Dna, k, t, N, runs):
     overallBestMotifs = None
@@ -64,7 +68,7 @@ def runAugmented(Dna, k, t, N, runs):
 
     for r in range(runs):
         motifs = augmentedGibbsSampler(Dna, k , t, N)
-        score = Score(motifs)
+        score = entropyScore(motifs)
         scores.append(score)
 
         print(f"Run {r+1}: Score = {score}")
